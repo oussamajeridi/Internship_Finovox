@@ -2,7 +2,7 @@ import pytest
 import tempfile
 import os
 from pathlib import Path
-from app import create_app
+from main import create_app
 from utils import is_safe_filename, sanitize_filename, format_file_size, get_file_info
 
 @pytest.fixture
@@ -124,6 +124,155 @@ class TestFileEndpoints:
         data = response.get_json()
         assert 'error' in data
         assert data['error']['code'] == 'NOT_FOUND'
+    
+    def test_upload_file_success(self, client):
+        """Test successful file upload."""
+        # Create a test file using proper Flask test client format
+        from io import BytesIO
+        
+        data = {
+            'file': (BytesIO(b'Test upload content'), 'test_upload.txt')
+        }
+        
+        response = client.post('/api/files', data=data, content_type='multipart/form-data')
+        
+        assert response.status_code == 201
+        data = response.get_json()
+        assert 'message' in data
+        assert data['message'] == 'File uploaded successfully'
+        assert 'file' in data
+        assert data['file']['name'] == 'test_upload.txt'
+        assert data['file']['size'] == 19  # length of 'Test upload content'
+    
+    def test_upload_no_file_part(self, client):
+        """Test upload with no file part in request."""
+        response = client.post('/api/files', data={})
+        
+        assert response.status_code == 400
+        data = response.get_json()
+        assert 'error' in data
+        assert data['error']['code'] == 'NO_FILE_PART'
+    
+    def test_upload_empty_filename(self, client):
+        """Test upload with empty filename."""
+        from io import BytesIO
+        
+        data = {
+            'file': (BytesIO(b''), '')
+        }
+        
+        response = client.post('/api/files', data=data, content_type='multipart/form-data')
+        
+        assert response.status_code == 400
+        data = response.get_json()
+        assert 'error' in data
+        assert data['error']['code'] == 'NO_SELECTED_FILE'
+    
+    def test_upload_invalid_filename(self, client):
+        """Test upload with invalid filename."""
+        from io import BytesIO
+        
+        data = {
+            'file': (BytesIO(b'test content'), '../invalid.txt')
+        }
+        
+        response = client.post('/api/files', data=data, content_type='multipart/form-data')
+        
+        assert response.status_code == 400
+        data = response.get_json()
+        assert 'error' in data
+        assert data['error']['code'] == 'INVALID_FILENAME'
+    
+    def test_upload_file_too_large(self, client, app):
+        """Test upload with file exceeding size limit."""
+        from io import BytesIO
+        
+        # Create content larger than max size (100MB)
+        max_size = app.config['MAX_FILE_SIZE']
+        large_content = b'x' * (max_size + 1)
+        
+        data = {
+            'file': (BytesIO(large_content), 'large_file.txt')
+        }
+        
+        response = client.post('/api/files', data=data, content_type='multipart/form-data')
+        
+        assert response.status_code == 400
+        data = response.get_json()
+        assert 'error' in data
+        assert data['error']['code'] == 'FILE_TOO_LARGE'
+    
+    def test_upload_file_already_exists(self, client):
+        """Test upload when file already exists."""
+        from io import BytesIO
+        
+        # First upload
+        test_content = b'Test content'
+        data1 = {
+            'file': (BytesIO(test_content), 'duplicate.txt')
+        }
+        client.post('/api/files', data=data1, content_type='multipart/form-data')
+        
+        # Try to upload same file again
+        data2 = {
+            'file': (BytesIO(test_content), 'duplicate.txt')
+        }
+        response = client.post('/api/files', data=data2, content_type='multipart/form-data')
+        
+        assert response.status_code == 409
+        data = response.get_json()
+        assert 'error' in data
+        assert data['error']['code'] == 'FILE_EXISTS'
+
+    def test_delete_file_success(self, client):
+        """Test successful file deletion."""
+        from io import BytesIO
+        
+        # First upload a file
+        test_content = b'Test content for deletion'
+        data = {
+            'file': (BytesIO(test_content), 'delete_test.txt')
+        }
+        upload_response = client.post('/api/files', data=data, content_type='multipart/form-data')
+        assert upload_response.status_code == 201
+        
+        # Now delete the file
+        response = client.delete('/api/files/delete_test.txt')
+        
+        assert response.status_code == 200
+        data = response.get_json()
+        assert 'message' in data
+        assert data['message'] == 'File deleted successfully'
+        assert 'file' in data
+        assert data['file']['name'] == 'delete_test.txt'
+        assert data['file']['size'] == len(test_content)
+    
+    def test_delete_file_not_found(self, client):
+        """Test deletion of non-existent file."""
+        response = client.delete('/api/files/nonexistent.txt')
+        
+        assert response.status_code == 404
+        data = response.get_json()
+        assert 'error' in data
+        assert data['error']['code'] == 'FILE_NOT_FOUND'
+    
+    def test_delete_file_invalid_filename(self, client):
+        """Test deletion with invalid filename."""
+        response = client.delete('/api/files/../etc/passwd')
+        
+        assert response.status_code == 400
+        data = response.get_json()
+        assert 'error' in data
+        assert data['error']['code'] == 'INVALID_FILENAME'
+    
+    def test_delete_file_path_traversal(self, client):
+        """Test deletion with path traversal attempt."""
+        response = client.delete('/api/files/../../../etc/passwd')
+        
+        assert response.status_code == 400
+        data = response.get_json()
+        assert 'error' in data
+        assert data['error']['code'] == 'INVALID_FILENAME'
 
 class TestUtilityFunctions:
     """Test utility functions."""

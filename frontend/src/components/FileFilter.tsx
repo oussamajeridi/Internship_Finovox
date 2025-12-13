@@ -1,4 +1,4 @@
-import { Grid, Paper, Typography, Box, Container, Chip } from '@mui/material';
+import { Grid, Paper, Typography, Box, Chip } from '@mui/material';
 import SearchBar from './SearchBar';
 import Sorting from './Sorting';
 import DateRangeFilter from './DateRangeFilter';

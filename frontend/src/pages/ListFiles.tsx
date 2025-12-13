@@ -1,9 +1,9 @@
 //  List Page for files
-import { Alert, Container, Grid, Box, Typography } from '@mui/material'
+import { Alert, Container, Grid, Box } from '@mui/material'
 import FileCard from '../components/FileCard'
 import SkeletonCard from '../components/SkeletonCard'
 import FileFilter from '../components/FileFilter'
-import EnhancedEmptyState from '../components/EnhancedEmptyState'
+import UploadComponent from '../components/UploadComponent'
 import { useGetFiles } from '../hooks/useGetFiles'
 import { useFilesStore } from '../store/filesStore'
 import { useEffect } from 'react'
@@ -12,6 +12,7 @@ function ListFiles() {
     const { 
         files, 
         setFiles, 
+        addFile,
         searchTerm, 
         sortBy, 
         sortOrder, 
@@ -40,6 +41,11 @@ function ListFiles() {
 
     return (
         <Container sx={{minHeight:'100vh',padding:0}}>
+            <UploadComponent 
+                onUploadSuccess={addFile}
+                onUploadError={(error) => console.error('Upload error:', error)}
+            />
+            
             <Box sx={{ mb: 4 }}>
                 
                 

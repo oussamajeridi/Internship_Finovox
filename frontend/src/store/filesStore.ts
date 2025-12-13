@@ -16,6 +16,8 @@ type FileStore = {
   setEndDate: (endDate: Date | null) => void;
   clearDateRange: () => void;
   getFilteredAndSortedFiles: () => FileType[];
+  addFile: (file: FileType) => void;
+  deleteFile: (filename: string) => void;
 }
 export const useFilesStore = create((set, get) : FileStore => ({
   files: [],
@@ -26,6 +28,14 @@ export const useFilesStore = create((set, get) : FileStore => ({
   endDate: null,
   
   setFiles: (files: FileType[]) => set({ files }),
+  
+  addFile: (file: FileType) => set((state) => ({ 
+    files: [...state.files, file] 
+  })),
+  
+  deleteFile: (filename: string) => set((state) => ({ 
+    files: state.files.filter((file) => file.name !== filename) 
+  })),
   
   setSearchTerm: (searchTerm: string) => set({ searchTerm }),
   

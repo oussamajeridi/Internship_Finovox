@@ -1,21 +1,26 @@
 // Enhanced File Card with better visual hierarchy and animations
-import { Box, Button, Card, CardContent, Typography, CardMedia, Chip, Snackbar, IconButton } from '@mui/material'
+import { Box, Button, Card, CardContent, Typography, CardMedia, Chip, Snackbar, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle } from '@mui/material'
 import type { File as FileType } from '../types/File'
 import DownloadIcon from '@mui/icons-material/Download';
 import FileDownloadDoneIcon from '@mui/icons-material/FileDownloadDone';
 import StorageIcon from '@mui/icons-material/Storage';
 import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
+import DeleteIcon from '@mui/icons-material/Delete';
 import { useNavigate } from 'react-router';
 import { useState } from 'react';
 import { formatFileSize } from '../utils/formatFileSize'
-import { motion } from 'framer-motion';;
+import { motion } from 'framer-motion';
 import fileImage from "../assets/file.png"
+import { useGetFiles } from '../hooks/useGetFiles';
+import { deleteFile } from '../api/deleteFile';
 function FileCard({ file }: { file: FileType }) {
   const [isPending, setIsPending] = useState(false)
   const [isSuccess, setIsSuccess] = useState(false)
   const [error, setError] = useState<Error | null>(null)
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+  const [isDeleting, setIsDeleting] = useState(false)
   const navigate = useNavigate()
-
+  const { refetch } = useGetFiles()
 
 
   const handleDownload = async () => {
@@ -29,12 +34,39 @@ function FileCard({ file }: { file: FileType }) {
       
       setIsSuccess(true)
       setTimeout(() => setIsSuccess(false), 3000) // Reset success state after 3 seconds
+      refetch()
     } catch (error) {
       setError(error as Error)
       setIsSuccess(false)
     } finally {
       setIsPending(false)
     }
+  }
+
+  const handleDeleteClick = () => {
+    setDeleteDialogOpen(true)
+  }
+
+  const handleDeleteConfirm = async () => {
+    try {
+      setIsDeleting(true)
+      setError(null)
+      
+      // Call the onDelete callback to handle deletion in parent component
+      await deleteFile(file.name)
+      refetch()
+      
+      setDeleteDialogOpen(false)
+      
+    } catch (error) {
+      setError(error as Error)
+    } finally {
+      setIsDeleting(false)
+    }
+  }
+
+  const handleDeleteCancel = () => {
+    setDeleteDialogOpen(false)
   }
 
   return (
@@ -181,6 +213,31 @@ function FileCard({ file }: { file: FileType }) {
               {isPending ? 'Downloading...' : isSuccess ? 'Downloaded!' : 'Download File'}
             </Button>
             
+            <Button 
+              variant="outlined"
+              color="error" 
+              size="large" 
+              disabled={isDeleting}
+              onClick={handleDeleteClick}
+              fullWidth
+              startIcon={<DeleteIcon />}
+              sx={{
+                borderRadius: 2,
+                py: 1.5,
+                fontWeight: 600,
+                textTransform: 'none',
+                mt: 1,
+                borderColor: 'error.main',
+                color: 'error.main',
+                '&:hover': {
+                  backgroundColor: 'error.main',
+                  color: 'white',
+                },
+              }}
+            >
+              {isDeleting ? 'Deleting...' : 'Delete File'}
+            </Button>
+            
             {error && (
               <Typography 
                 variant="caption" 
@@ -198,6 +255,31 @@ function FileCard({ file }: { file: FileType }) {
           </Box>
         </CardContent>
       </Card>
+      
+      {/* Delete Confirmation Dialog */}
+      <Dialog
+        open={deleteDialogOpen}
+        onClose={handleDeleteCancel}
+        aria-labelledby="delete-dialog-title"
+        aria-describedby="delete-dialog-description"
+      >
+        <DialogTitle id="delete-dialog-title">
+          Confirm File Deletion
+        </DialogTitle>
+        <DialogContent>
+          <DialogContentText id="delete-dialog-description">
+            Are you sure you want to delete "{file.name}"? This action cannot be undone.
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleDeleteCancel} color="primary">
+            Cancel
+          </Button>
+          <Button onClick={handleDeleteConfirm} color="error" autoFocus disabled={isDeleting}>
+            {isDeleting ? 'Deleting...' : 'Delete'}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </motion.div>
   )
 

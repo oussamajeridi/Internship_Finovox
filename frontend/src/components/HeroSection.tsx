@@ -1,11 +1,7 @@
-import { Box, Container, Typography, Chip } from '@mui/material';
+import { Box, Container, Typography } from '@mui/material';
 import { motion } from 'framer-motion';
 
-interface HeroSectionProps {
-  fileCount: number;
-}
-
-const HeroSection = ({ fileCount }: HeroSectionProps) => {
+const HeroSection = () => {
   return (
     <Box sx={{
       background: 'linear-gradient(135deg, #6366F1 0%, #8B5CF6 100%)',
