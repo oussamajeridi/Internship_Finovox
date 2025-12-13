@@ -1,0 +1,15 @@
+This is a sample PDF document for testing the file downloader application.
+
+Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.
+
+Key Features:
+- Sample document for testing
+- Contains formatted text
+- Used for demonstrating file download functionality
+
+Testing Information:
+File size: Small (< 1KB)
+Format: Plain text (simulating PDF content)
+Purpose: Testing file listing and download functionality
+
+End of document.

@@ -1,0 +1,4 @@
+# git ignore file for python
+venv/
+__pycache__/
+.pytest_cache/
