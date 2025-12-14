@@ -1,70 +1,59 @@
+"""
+Simplified utility functions for file operations.
+"""
+
 import logging
 import os
 from datetime import datetime
 from pathlib import Path
 
-# Configure logging
-def setup_logging(log_level='INFO'):
-    """Set up application logging."""
-    logging.basicConfig(
-        level=getattr(logging, log_level.upper()),
-        format='[%(asctime)s] %(levelname)s - %(message)s',
-        datefmt='%Y-%m-%d %H:%M:%S'
-    )
-    return logging.getLogger(__name__)
 
 def format_file_size(size_bytes):
-    """Format file size in human-readable format."""
+    """Convert file size to human-readable format."""
     if size_bytes == 0:
         return "0 B"
     
-    size_names = ["B", "KB", "MB", "GB", "TB"]
+    sizes = ["B", "KB", "MB", "GB", "TB"]
     i = 0
-    while size_bytes >= 1024 and i < len(size_names) - 1:
+    while size_bytes >= 1024 and i < len(sizes) - 1:
         size_bytes /= 1024.0
         i += 1
     
-    return f"{size_bytes:.1f} {size_names[i]}"
+    return f"{size_bytes:.1f} {sizes[i]}"
+
 
 def is_safe_filename(filename):
     """Check if filename is safe (no path traversal)."""
-    if not filename or filename.startswith('.') or '..' in filename:
+    if not filename or filename.startswith('.'):
         return False
     
-    # Check for absolute paths (Unix and Windows)
-    if os.path.isabs(filename) or filename.startswith('\\') or len(filename) > 2 and filename[1] == ':':
+    # Check for path traversal
+    if '..' in filename or '/' in filename or '\\' in filename:
         return False
     
-    # Check for path separators
-    if '/' in filename or '\\' in filename:
+    # Check for absolute paths
+    if os.path.isabs(filename) or filename.startswith('\\') or (len(filename) > 2 and filename[1] == ':'):
         return False
     
     # Check for invalid characters
     invalid_chars = ['<', '>', ':', '"', '|', '?', '*']
-    if any(char in filename for char in invalid_chars):
-        return False
-    
-    return True
+    return not any(char in filename for char in invalid_chars)
+
 
 def sanitize_filename(filename):
-    """Sanitize filename to prevent security issues."""
-    # Get just the basename to prevent path traversal
-    safe_name = os.path.basename(filename)
-    
-    # Remove any remaining path separators
-    safe_name = safe_name.replace('/', '').replace('\\', '')
-    
-    return safe_name
+    """Get safe filename by removing path components."""
+    return os.path.basename(filename).replace('/', '').replace('\\', '')
+
 
 def get_file_info(file_path):
-    """Get file information including metadata."""
+    """Get file metadata."""
     try:
         stat = file_path.stat()
         return {
             'name': file_path.name,
             'size': stat.st_size,
-            'last_modified': datetime.fromtimestamp(stat.st_mtime).isoformat() + 'Z'
+            'last_modified': datetime.fromtimestamp(stat.st_mtime).isoformat(),
+            'type': file_path.suffix.lower() or 'no-extension'
         }
-    except (OSError, IOError) as e:
-        logging.error(f"Error getting file info for {file_path}: {e}")
+    except:
         return None

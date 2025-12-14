@@ -1,0 +1,18 @@
+# Sample Data File
+
+This is a sample data file for testing the file downloader application.
+
+## Structure
+- Contains sample data
+- Used for testing file listing
+- Demonstrates download functionality
+
+## Content
+Lorem ipsum dolor sit amet, consectetur adipiscing elit.
+Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.
+Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris.
+
+## Metadata
+Created for testing purposes
+File type: Plain text
+Size: Small (< 1KB)

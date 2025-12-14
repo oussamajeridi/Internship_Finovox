@@ -1,17 +1,27 @@
+"""
+Test suite for the Flask file management application.
+
+This module contains comprehensive tests for all API endpoints and utility functions,
+organized by functionality for better maintainability.
+"""
+
 import pytest
 import tempfile
 import os
 from pathlib import Path
+from io import BytesIO
+
 from main import create_app
 from utils import is_safe_filename, sanitize_filename, format_file_size, get_file_info
 
+
 @pytest.fixture
 def app():
-    """Create and configure a test app instance."""
+    """Create and configure a test app instance with temporary files directory."""
     # Create a temporary directory for test files
     test_files_dir = tempfile.mkdtemp()
     
-    # Create test app with test configuration
+    # Create test app with testing configuration
     app = create_app('testing')
     app.config['FILES_DIRECTORY'] = test_files_dir
     app.config['TESTING'] = True
@@ -31,13 +41,15 @@ def app():
         # Handle Windows permission issues
         pass
 
+
 @pytest.fixture
 def client(app):
-    """A test client for the app."""
+    """Create a test client for the Flask app."""
     return app.test_client()
 
-class TestFileEndpoints:
-    """Test cases for file endpoints."""
+
+class TestFileListingEndpoints:
+    """Test cases for file listing and retrieval endpoints."""
     
     def test_get_files_success(self, client):
         """Test successful file listing."""
@@ -45,15 +57,48 @@ class TestFileEndpoints:
         
         assert response.status_code == 200
         data = response.get_json()
-        assert isinstance(data, list)
-        assert len(data) == 3
+        assert 'files' in data
+        assert 'pagination' in data
+        assert len(data['files']) == 3
         
         # Check file structure
-        for file_item in data:
+        for file_item in data['files']:
             assert 'name' in file_item
             assert 'size' in file_item
             assert 'last_modified' in file_item
             assert file_item['name'] in ['test1.txt', 'test2.pdf', 'test3.png']
+    
+    def test_get_files_with_pagination(self, client):
+        """Test file listing with pagination parameters."""
+        response = client.get('/api/files?page=1&per_page=2')
+        
+        assert response.status_code == 200
+        data = response.get_json()
+        assert len(data['files']) == 2
+        assert data['pagination']['page'] == 1
+        assert data['pagination']['per_page'] == 2
+        assert data['pagination']['total_files'] == 3
+        assert data['pagination']['total_pages'] == 2
+    
+    def test_get_files_with_search(self, client):
+        """Test file listing with search filter."""
+        response = client.get('/api/files?search=test1')
+        
+        assert response.status_code == 200
+        data = response.get_json()
+        assert len(data['files']) == 1
+        assert data['files'][0]['name'] == 'test1.txt'
+    
+    def test_get_files_with_sorting(self, client):
+        """Test file listing with sorting parameters."""
+        response = client.get('/api/files?sort_by=name&sort_order=desc')
+        
+        assert response.status_code == 200
+        data = response.get_json()
+        assert len(data['files']) == 3
+        # Files should be sorted in descending order by name
+        names = [f['name'] for f in data['files']]
+        assert names == sorted(names, reverse=True)
     
     def test_get_files_empty_directory(self, client, app):
         """Test file listing with empty directory."""
@@ -67,8 +112,12 @@ class TestFileEndpoints:
         
         assert response.status_code == 200
         data = response.get_json()
-        assert isinstance(data, list)
-        assert len(data) == 0
+        assert len(data['files']) == 0
+        assert data['pagination']['total_files'] == 0
+
+
+class TestFileDownloadEndpoints:
+    """Test cases for file download endpoints."""
     
     def test_download_file_success(self, client):
         """Test successful file download."""
@@ -76,7 +125,6 @@ class TestFileEndpoints:
         
         assert response.status_code == 200
         assert response.data == b'Test content 1'
-        # Flask may format Content-Disposition differently, so check for both formats
         content_disposition = response.headers['Content-Disposition']
         assert content_disposition in ['attachment; filename="test1.txt"', 'attachment; filename=test1.txt']
     
@@ -90,7 +138,7 @@ class TestFileEndpoints:
         assert data['error']['code'] == 'FILE_NOT_FOUND'
     
     def test_download_file_path_traversal(self, client):
-        """Test path traversal protection."""
+        """Test path traversal protection in download endpoint."""
         response = client.get('/download/../etc/passwd')
         
         assert response.status_code == 400
@@ -99,37 +147,20 @@ class TestFileEndpoints:
         assert data['error']['code'] == 'INVALID_FILENAME'
     
     def test_download_file_absolute_path(self, client):
-        """Test absolute path rejection."""
+        """Test absolute path rejection in download endpoint."""
         response = client.get('/download/C:/Windows/System32/config/SAM')
         
         assert response.status_code == 400
         data = response.get_json()
         assert 'error' in data
         assert data['error']['code'] == 'INVALID_FILENAME'
-    
-    def test_health_check(self, client):
-        """Test health check endpoint."""
-        response = client.get('/health')
-        
-        assert response.status_code == 200
-        data = response.get_json()
-        assert data['status'] == 'healthy'
-        assert 'timestamp' in data
-    
-    def test_404_handler(self, client):
-        """Test 404 error handler."""
-        response = client.get('/nonexistent-endpoint')
-        
-        assert response.status_code == 404
-        data = response.get_json()
-        assert 'error' in data
-        assert data['error']['code'] == 'NOT_FOUND'
+
+
+class TestFileUploadEndpoints:
+    """Test cases for file upload endpoints."""
     
     def test_upload_file_success(self, client):
         """Test successful file upload."""
-        # Create a test file using proper Flask test client format
-        from io import BytesIO
-        
         data = {
             'file': (BytesIO(b'Test upload content'), 'test_upload.txt')
         }
@@ -155,8 +186,6 @@ class TestFileEndpoints:
     
     def test_upload_empty_filename(self, client):
         """Test upload with empty filename."""
-        from io import BytesIO
-        
         data = {
             'file': (BytesIO(b''), '')
         }
@@ -170,8 +199,6 @@ class TestFileEndpoints:
     
     def test_upload_invalid_filename(self, client):
         """Test upload with invalid filename."""
-        from io import BytesIO
-        
         data = {
             'file': (BytesIO(b'test content'), '../invalid.txt')
         }
@@ -185,8 +212,6 @@ class TestFileEndpoints:
     
     def test_upload_file_too_large(self, client, app):
         """Test upload with file exceeding size limit."""
-        from io import BytesIO
-        
         # Create content larger than max size (100MB)
         max_size = app.config['MAX_FILE_SIZE']
         large_content = b'x' * (max_size + 1)
@@ -204,8 +229,6 @@ class TestFileEndpoints:
     
     def test_upload_file_already_exists(self, client):
         """Test upload when file already exists."""
-        from io import BytesIO
-        
         # First upload
         test_content = b'Test content'
         data1 = {
@@ -224,10 +247,12 @@ class TestFileEndpoints:
         assert 'error' in data
         assert data['error']['code'] == 'FILE_EXISTS'
 
+
+class TestFileDeleteEndpoints:
+    """Test cases for file deletion endpoints."""
+    
     def test_delete_file_success(self, client):
         """Test successful file deletion."""
-        from io import BytesIO
-        
         # First upload a file
         test_content = b'Test content for deletion'
         data = {
@@ -274,17 +299,49 @@ class TestFileEndpoints:
         assert 'error' in data
         assert data['error']['code'] == 'INVALID_FILENAME'
 
+
+class TestSystemEndpoints:
+    """Test cases for system and utility endpoints."""
+    
+    def test_health_check(self, client):
+        """Test health check endpoint."""
+        response = client.get('/health')
+        
+        assert response.status_code == 200
+        data = response.get_json()
+        assert data['status'] == 'healthy'
+        assert 'timestamp' in data
+    
+    def test_404_handler(self, client):
+        """Test 404 error handler."""
+        response = client.get('/nonexistent-endpoint')
+        
+        assert response.status_code == 404
+        data = response.get_json()
+        assert 'error' in data
+        assert data['error']['code'] == 'NOT_FOUND'
+    
+    def test_405_handler(self, client):
+        """Test 405 method not allowed error handler."""
+        response = client.post('/health')  # Health endpoint only supports GET
+        
+        assert response.status_code == 405
+        data = response.get_json()
+        assert 'error' in data
+        assert data['error']['code'] == 'METHOD_NOT_ALLOWED'
+
+
 class TestUtilityFunctions:
-    """Test utility functions."""
+    """Test cases for utility functions."""
     
     def test_is_safe_filename_valid(self):
-        """Test valid filenames."""
+        """Test valid filename validation."""
         assert is_safe_filename('test.txt') is True
         assert is_safe_filename('file-name.pdf') is True
         assert is_safe_filename('file_name.doc') is True
     
     def test_is_safe_filename_invalid(self):
-        """Test invalid filenames."""
+        """Test invalid filename validation."""
         assert is_safe_filename('') is False
         assert is_safe_filename('.hidden') is False
         assert is_safe_filename('../test.txt') is False
@@ -305,7 +362,7 @@ class TestUtilityFunctions:
         assert format_file_size(1073741824) == '1.0 GB'
     
     def test_get_file_info(self):
-        """Test file info extraction."""
+        """Test file metadata extraction."""
         with tempfile.NamedTemporaryFile(delete=False) as tmp:
             tmp.write(b'test content')
             tmp_path = tmp.name
@@ -317,5 +374,6 @@ class TestUtilityFunctions:
             assert file_info['name'] == os.path.basename(tmp_path)
             assert file_info['size'] == 12
             assert 'last_modified' in file_info
+            assert 'type' in file_info
         finally:
             os.unlink(tmp_path)

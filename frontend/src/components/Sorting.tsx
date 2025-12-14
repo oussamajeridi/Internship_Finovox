@@ -4,11 +4,12 @@ import SortIcon from '@mui/icons-material/Sort';
 import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
 import ArrowUpwardIcon from '@mui/icons-material/ArrowUpward';
 import ArrowDownwardIcon from '@mui/icons-material/ArrowDownward';
+import CategoryIcon from '@mui/icons-material/Category';
 
 interface SortingProps {
-  sortBy: 'name' | 'size' | 'date';
+  sortBy: 'name' | 'size' | 'modified' | 'type';
   sortOrder: 'asc' | 'desc';
-  onSortByChange: (sortBy: 'name' | 'size' | 'date') => void;
+  onSortByChange: (sortBy: 'name' | 'size' | 'modified' | 'type') => void;
   onSortOrderChange: (sortOrder: 'asc' | 'desc') => void;
 }
 
@@ -37,9 +38,13 @@ function Sorting({ sortBy, sortOrder, onSortByChange, onSortOrderChange }: Sorti
           <SortIcon sx={{ mr: 1 }} />
           Size
         </ToggleButton>
-        <ToggleButton value="date" aria-label="sort by date">
+        <ToggleButton value="modified" aria-label="sort by modified date">
           <CalendarTodayIcon sx={{ mr: 1 }} />
-          Date
+          Modified
+        </ToggleButton>
+        <ToggleButton value="type" aria-label="sort by type">
+          <CategoryIcon sx={{ mr: 1 }} />
+          Type
         </ToggleButton>
       </ToggleButtonGroup>
 

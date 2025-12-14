@@ -1,22 +1,22 @@
-import { Grid, Paper, Typography, Box, Chip } from '@mui/material';
-import SearchBar from './SearchBar';
-import Sorting from './Sorting';
-import DateRangeFilter from './DateRangeFilter';
-import { motion } from 'framer-motion';
+import { Grid, Paper, Typography, Box, Chip } from '@mui/material'
+import SearchBar from './SearchBar'
+import Sorting from './Sorting'
+import DateRangeFilter from './DateRangeFilter'
+import { motion } from 'framer-motion'
 
 interface FileFilterProps {
-  searchTerm: string;
-  onSearchChange: (searchTerm: string) => void;
-  sortBy: 'name' | 'size' | 'date';
-  sortOrder: 'asc' | 'desc';
-  onSortByChange: (sortBy: 'name' | 'size' | 'date') => void;
-  onSortOrderChange: (sortOrder: 'asc' | 'desc') => void;
-  startDate: Date | null;
-  endDate: Date | null;
-  onStartDateChange: (date: Date | null) => void;
-  onEndDateChange: (date: Date | null) => void;
-  totalFiles: number;
-  filteredFiles: number;
+  searchTerm: string
+  onSearchChange: (searchTerm: string) => void
+  sortBy: 'name' | 'size' | 'modified' | 'type'
+  sortOrder: 'asc' | 'desc'
+  onSortByChange: (sortBy: 'name' | 'size' | 'modified' | 'type') => void
+  onSortOrderChange: (sortOrder: 'asc' | 'desc') => void
+  startDate: Date | null
+  endDate: Date | null
+  onStartDateChange: (date: Date | null) => void
+  onEndDateChange: (date: Date | null) => void
+  totalFiles: number
+  filteredFiles: number
 }
 
 function FileFilter({ 
@@ -48,25 +48,11 @@ function FileFilter({
           backgroundColor: 'background.paper',
           border: '1px solid',
           borderColor: 'divider',
-          transition: 'all 0.2s ease',
-          '&:hover': {
-            boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
-          },
         }}
       >
         <Grid container spacing={3}>
-          {/* Search Section */}
           <Grid size={{ xs: 12 }}>
-            <Typography
-              component="label"
-              variant="subtitle2"
-              sx={{ 
-                mb: 1, 
-                display: 'block', 
-                fontWeight: 600,
-                color: 'text.primary',
-              }}
-            >
+            <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 600 }}>
               Search Files
             </Typography>
             <SearchBar 
@@ -76,18 +62,8 @@ function FileFilter({
             />
           </Grid>
           
-          {/* Date Range Section */}
-          <Grid size={{ xs: 12, lg: 6  }}>
-            <Typography
-              component="label"
-              variant="subtitle2"
-              sx={{ 
-                mb: 1, 
-                display: 'block', 
-                fontWeight: 600,
-                color: 'text.primary',
-              }}
-            >
+          <Grid size={{ xs: 12, lg: 6 }}>
+            <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 600 }}>
               Date Range
             </Typography>
             <DateRangeFilter
@@ -98,19 +74,8 @@ function FileFilter({
             />
           </Grid>
 
-          {/* Sort Section */}
-          <Grid size={{ xs: 12, lg: 6 }} flex={1} flexDirection={{ xs: 'column'}}  alignItems={'end'} justifyContent={'flex-end'} >
-            <Typography
-              component="label"
-              variant="subtitle2"
-              sx={{ 
-                mb: 1, 
-                display: 'block', 
-                fontWeight: 600,
-                color: 'text.primary'
-              
-              }}
-            >
+          <Grid size={{ xs: 12, lg: 6 }}>
+            <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 600 }}>
               Sort By
             </Typography>
             <Sorting 
@@ -122,7 +87,6 @@ function FileFilter({
           </Grid>
         </Grid>
 
-        {/* Results Summary */}
         <Box sx={{ 
           mt: 3, 
           pt: 2, 
@@ -152,22 +116,18 @@ function FileFilter({
             <Chip
               label="Clear filters"
               onClick={() => {
-                onSearchChange('');
-                onStartDateChange(null);
-                onEndDateChange(null);
+                onSearchChange('')
+                onStartDateChange(null)
+                onEndDateChange(null)
               }}
               size="small"
               variant="outlined"
-              sx={{
-                cursor: 'pointer',
-                fontWeight: 500,
-              }}
             />
           )}
         </Box>
       </Paper>
     </motion.div>
-  );
+  )
 }
 
-export default FileFilter;
+export default FileFilter

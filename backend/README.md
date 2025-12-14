@@ -1,194 +1,254 @@
-# Backend Documentation
+# 🐍 File Manager Backend
 
-## Overview
+A Flask-based REST API for file management with upload, download, search, and security features.
 
-The backend is a Flask-based REST API that provides file management and download functionality. It serves as the server-side component for a file browser application, handling file listing, metadata retrieval, and secure file downloads.
+## 🚀 Quick Start
 
-## Architecture
+### Prerequisites
+- Python 3.8 or higher
+- pip (Python package manager)
 
-### Technology Stack
-- **Framework**: Flask (Python web framework)
-- **CORS**: Flask-CORS for cross-origin resource sharing
-- **Logging**: Python logging module
-- **Configuration**: Environment-based configuration management
-- **Security**: Input validation and sanitization
+### Setup & Run
+```bash
+# Install dependencies
+pip install -r requirements.txt
+
+# Create files directory
+mkdir files
+
+# Run the application
+python main.py
+
+# Run tests
+python -m pytest test_app.py
+```
+
+### Environment Setup
+Create a `.env` file in the backend root:
+```bash
+# Basic configuration
+FLASK_ENV=development
+SECRET_KEY=your-secret-key-here
+FILES_DIRECTORY=./files
+MAX_FILE_SIZE=104857600
+CORS_ORIGINS=http://localhost:5173
+LOG_LEVEL=DEBUG
+```
+
+## 🏗️ Architecture Overview
+
+### Tech Stack
+- **Flask** - Python web framework
+- **Flask-CORS** - Cross-origin support
+- **pytest** - Testing framework
+- **pathlib** - Modern file operations
 
 ### Project Structure
 ```
 backend/
-├── main.py           # Main Flask application with routes
-├── config.py         # Configuration management
-├── utils.py          # Utility functions
-├── test_app.py       # Unit tests
-└── requirements.txt  # Python dependencies
+├── main.py           # Flask app entry point
+├── routes.py         # API endpoints
+├── config.py         # Configuration
+├── utils.py          # Helper functions
+├── test_app.py       # Test suite
+├── requirements.txt  # Dependencies
+└── files/            # File storage
 ```
 
-## Core Components
+## 🔧 Key Features
 
-### 1. Application Factory (main.py)
+### File Operations
+- 📤 **Upload files** - Secure file upload with validation
+- 📥 **Download files** - Safe file downloads
+- 🔍 **Search files** - Search by filename
+- 📊 **Sort & filter** - Sort by name, size, date, type
+- 📅 **Date filtering** - Filter by date range
+- 🗑️ **Delete files** - Remove files safely
 
-The application uses the factory pattern for creating Flask instances, allowing for different configurations based on environment.
+### Security Features
+- 🔒 **Path traversal protection** - Prevents directory attacks
+- 📏 **File size limits** - Configurable size restrictions
+- 🔤 **Filename validation** - Blocks malicious filenames
+- 🌐 **CORS support** - Configurable cross-origin access
 
-#### Key Routes:
+### API Features
+- 📄 **Pagination** - Paginated file listings
+- 🎯 **RESTful design** - Clean API structure
+- 📊 **Error handling** - Consistent error responses
+- 🏥 **Health check** - Monitor API status
 
-- **GET /api/files**
-  - Retrieves a list of available files with metadata
-  - Returns JSON array containing file name, size, and last modified date
-  - Sorts files alphabetically by name
-  - Skips directories and hidden files
+## 🌐 API Endpoints
 
-- **GET /download/<filename>**
-  - Downloads a specific file securely
-  - Validates filename to prevent path traversal attacks
-  - Checks file size limits (configurable, default 100MB)
-  - Sanitizes filenames for security
+### File Management
+- `GET /api/files` - List files (with search, sort, pagination)
+- `POST /api/files` - Upload new file
+- `DELETE /api/files/{filename}` - Delete specific file
+- `GET /download/{filename}` - Download file
+- `GET /health` - Health check
 
-- **GET /health**
-  - Health check endpoint for monitoring
-  - Returns status and timestamp
+### Example Requests
 
-#### Error Handling:
-- Comprehensive error responses with specific error codes
-- Proper HTTP status codes for different scenarios
-- Structured error messages with user-friendly descriptions
-
-### 2. Configuration Management (config.py)
-
-Supports multiple environments (development, production, testing) with environment-specific settings.
-
-#### Key Configuration Options:
-- **FILES_DIRECTORY**: Directory containing files to serve (default: ./files)
-- **MAX_FILE_SIZE**: Maximum allowed file size in bytes (default: 100MB)
-- **CORS_ORIGINS**: Allowed CORS origins for frontend communication
-- **LOG_LEVEL**: Logging verbosity level
-- **SECRET_KEY**: Flask secret key for session management
-
-#### Environment Variables:
+#### List Files with Basic Pagination
 ```bash
-FLASK_DEBUG=True/False
-FILES_DIRECTORY=/path/to/files
-MAX_FILE_SIZE=104857600
-CORS_ORIGINS=http://localhost:5174
-LOG_LEVEL=INFO
-SECRET_KEY=your-secret-key
+# Get first page with 10 files
+curl "http://localhost:5000/api/files?page=1&per_page=10"
 ```
 
-### 3. Utility Functions (utils.py)
+#### Search and Filter Files
+```bash
+# Search for files containing "report"
+curl "http://localhost:5000/api/files?search=report"
 
-Provides essential helper functions for the application:
+# Search with pagination
+curl "http://localhost:5000/api/files?search=document&page=1&per_page=5"
 
-#### Logging Setup
-- Configures structured logging with timestamps
-- Supports different log levels (DEBUG, INFO, WARNING, ERROR)
+# Filter by date range (ISO format)
+curl "http://localhost:5000/api/files?date_from=2024-01-01&date_to=2024-12-31"
 
-#### File Operations
-- **format_file_size()**: Converts bytes to human-readable format (B, KB, MB, GB, TB)
-- **get_file_info()**: Retrieves file metadata including size and modification time
-
-#### Security Functions
-- **is_safe_filename()**: Validates filenames to prevent path traversal attacks
-- **sanitize_filename()**: Removes potentially dangerous characters and path components
-
-## Security Features
-
-### Input Validation
-- Filename validation to prevent directory traversal
-- Path resolution checks to ensure files stay within allowed directory
-- File size limits to prevent abuse
-- Content-Type detection for proper file serving
-
-### Error Handling
-- Specific error codes for different failure scenarios
-- User-friendly error messages without exposing system details
-- Proper logging of security-related events
-
-## API Documentation
-
-### Endpoints
-
-#### Get Files List
-```http
-GET /api/files
+# Combine search and date filtering
+curl "http://localhost:5000/api/files?search=report&date_from=2024-01-01&per_page=20"
 ```
 
-**Response:**
-```json
-[
-  {
-    "name": "document.pdf",
-    "size": 1048576,
-    "last_modified": "2024-01-15T10:30:00Z"
-  }
-]
+#### Sort Files
+```bash
+# Sort by name (ascending)
+curl "http://localhost:5000/api/files?sort_by=name&sort_order=asc"
+
+# Sort by size (largest first)
+curl "http://localhost:5000/api/files?sort_by=size&sort_order=desc"
+
+# Sort by modification date (newest first)
+curl "http://localhost:5000/api/files?sort_by=modified&sort_order=desc"
+
+# Sort by file type
+curl "http://localhost:5000/api/files?sort_by=type&sort_order=asc"
 ```
 
-**Error Responses:**
-- `500`: Directory not found or internal error
-- `500`: Invalid directory path
+#### Upload Files
+```bash
+# Upload a single file
+curl -X POST -F "file=@document.pdf" http://localhost:5000/api/files
 
-#### Download File
-```http
-GET /download/{filename}
+# Upload with custom filename (if supported)
+curl -X POST -F "file=@/path/to/myfile.pdf" http://localhost:5000/api/files
+
+# Upload from current directory
+curl -X POST -F "file=@report.xlsx" http://localhost:5000/api/files
 ```
 
-**Parameters:**
-- `filename` (path): Name of the file to download
+#### Download Files
+```bash
+# Download file with original filename
+curl -O http://localhost:5000/download/document.pdf
 
-**Success Response:**
-- File download with proper headers
+# Download to specific location
+curl -o /path/to/save/report.pdf http://localhost:5000/download/report.pdf
 
-**Error Responses:**
-- `400`: Invalid filename
-- `403`: Access denied (path traversal attempt)
-- `404`: File not found
-- `400`: File too large
-- `500`: Download error
-
-#### Health Check
-```http
-GET /health
+# Download with resume support
+curl -C - -O http://localhost:5000/download/large-file.zip
 ```
 
-**Response:**
+#### Delete Files
+```bash
+# Delete a specific file
+curl -X DELETE http://localhost:5000/api/files/document.pdf
+
+# Delete with response verification
+curl -X DELETE http://localhost:5000/api/files/old-report.xlsx
+```
+
+#### System Health Check
+```bash
+# Check API health
+curl http://localhost:5000/health
+
+# Health check with timing
+curl -w "@curl-format.txt" http://localhost:5000/health
+```
+
+#### Advanced Example
+```bash
+# Complex query: Search for PDFs, sort by size, page 2
+curl "http://localhost:5000/api/files?search=.pdf&sort_by=size&sort_order=desc&page=2&per_page=10"
+
+```
+
+## 📋 Response Format
+
+### Success Response
 ```json
 {
-  "status": "healthy",
-  "timestamp": "2024-01-15T10:30:00Z"
+  "files": [
+    {
+      "name": "document.pdf",
+      "size": 1048576,
+      "last_modified": "2024-01-15T10:30:00Z",
+      "type": ".pdf"
+    }
+  ],
+  "pagination": {
+    "page": 1,
+    "per_page": 10,
+    "total_files": 25,
+    "total_pages": 3
+  }
 }
 ```
 
-## Development
+### Error Response
+```json
+{
+  "error": {
+    "code": "FILE_TOO_LARGE",
+    "message": "File size exceeds maximum allowed size"
+  }
+}
+```
 
-### Setup
-1. Install Python dependencies: `pip install -r requirements.txt`
-2. Create files directory: `mkdir files`
-3. Add files to serve in the files directory
-4. Run the application: `python main.py`
+## ⚙️ Configuration Options
 
-### Testing
-- Unit tests available in `test_app.py`
-- Run tests with: `python -m pytest test_app.py`
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `SECRET_KEY` | `'dev-secret-key'` | Flask secret key |
+| `FILES_DIRECTORY` | `'./files'` | File storage location |
+| `MAX_FILE_SIZE` | `104857600` | Max file size (bytes) |
+| `CORS_ORIGINS` | `'http://localhost:5173'` | Allowed frontend URLs |
+| `LOG_LEVEL` | `'INFO'` | Logging level |
+| `ALLOWED_EXTENSIONS` | `''` | Restrict file types (optional) |
 
-### Configuration
-- Default configuration uses development settings
-- Modify environment variables for production deployment
-- Ensure proper file permissions on the files directory
+## 🧪 Testing
 
-## Production Deployment
+```bash
+# Run all tests
+python -m pytest test_app.py
 
-### Security Considerations
-- Change default SECRET_KEY
-- Use proper file permissions
-- Configure appropriate CORS origins
-- Set up proper logging and monitoring
-- Consider using a reverse proxy (nginx, Apache)
+```
 
-### Performance
-- Application is lightweight and suitable for serving moderate file collections
-- File size limits prevent memory issues
-- Efficient file system operations
+## 🆘 Common Issues
 
-### Monitoring
-- Health check endpoint available for monitoring systems
-- Structured logging for log aggregation
-- Error tracking through proper logging levels
+### Port Already in Use
+```bash
+# Find process using port 5000
+lsof -i :5000
+# Kill the process
+kill -9 <PID>
+```
+
+### Permission Issues
+```bash
+# Fix file permissions
+chmod 755 ./files
+# Or change ownership
+chown -R $USER:$USER ./files
+```
+
+### CORS Problems
+- Check `CORS_ORIGINS` includes your frontend URL
+- Ensure frontend is running on allowed port
+- Check browser console for CORS errors
+
+### File Upload Failures
+- Verify `FILES_DIRECTORY` exists and is writable
+- Check file size against `MAX_FILE_SIZE` limit
+- Ensure filename doesn't contain invalid characters
+
