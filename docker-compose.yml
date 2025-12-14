@@ -1,0 +1,45 @@
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: internship_backend
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./backend:/app
+      - ./backend/files:/app/files
+    environment:
+      - FLASK_ENV=development
+      - FLASK_DEBUG=1
+      - CORS_ORIGINS=http://localhost:5173
+      - FILES_DIRECTORY=./files
+    networks:
+      - internship_network
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: internship_frontend
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    environment:
+      - NODE_ENV=development
+      - VITE_API_URL=http://localhost:5000
+    depends_on:
+      - backend
+    networks:
+      - internship_network
+    restart: unless-stopped
+
+networks:
+  internship_network:
+    driver: bridge
+
+volumes:
+  node_modules:
